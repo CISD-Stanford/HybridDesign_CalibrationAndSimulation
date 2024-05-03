@@ -25,7 +25,7 @@
 #' @export
 #'
 
-Calibration1 <- function (x1_mean, x2_mean, x1_var, x2_var, cov, delta, alpha = 0.05, w = cov/x2_var, W = x1_mean - w*ifelse(abs(x2_mean) < delta, x2_mean, 0)) {
+Calibration1 <- function (x1_mean, x2_mean, x1_var, x2_var, w, delta, alpha = 0.05, cov = w*x2_var, W = x1_mean - w*ifelse(abs(x2_mean) < delta, x2_mean, 0)) {
 
   force(w)
   force(W)

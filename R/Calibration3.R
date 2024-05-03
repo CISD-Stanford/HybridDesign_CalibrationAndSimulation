@@ -31,7 +31,7 @@
 #' @export
 #'
 
-Calibration3 <- function(x1_mean, x2_mean, x1_var, x2_var, cov, delta, p1, alpha = 0.05, w = cov/x2_var, W = x1_mean - w*ifelse(abs(x2_mean) < delta, x2_mean, 0)){
+Calibration3 <- function(x1_mean, x2_mean, x1_var, x2_var, w, delta, p1, alpha = 0.05, cov = w*x2_var, W = x1_mean - w*ifelse(abs(x2_mean) < delta, x2_mean, 0)){
 
   library("mvtnorm")
 
@@ -106,10 +106,10 @@ Calibration3 <- function(x1_mean, x2_mean, x1_var, x2_var, cov, delta, p1, alpha
   x3_var = x1_var + w^2*x2_var - 2*w*cov
 
   if(abs(x2_mean) < delta) {
-    rejectNull = W/sqrt(x3_var) > cutoffValue_borrowing
+    rejectNull = abs(W/sqrt(x3_var)) > cutoffValue_borrowing
   }
   else {
-    rejectNull = W/sqrt(x1_var) > cutoffValue_nonborrowing
+    rejectNull = abs(W/sqrt(x1_var)) > cutoffValue_nonborrowing
   }
 
   return(list(cutoffValue1 = cutoffValue_borrowing,
