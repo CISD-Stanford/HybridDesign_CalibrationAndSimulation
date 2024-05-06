@@ -1,3 +1,46 @@
+#'
+#' Run simulation study under normal assumption
+#'
+#' @description  This function is used to run simulation studies under normal assumption: the endpoints of the treatment arm, control arm and external control arm follow normal distributions 
+#' with means equal to mu_T, mu_C, mu_R and standard deviations equal to sigma_T, sigma_C and sigma_R. This function returns a list that contain the simulated data, the proportion of rejecting
+#' the null hypothesis of each calibration method.
+#'
+#' @usage Simulation.normal(mu_T, mu_C, mu_R, sigma_T, sigma_C, sigma_R, alpha_p, delta, alpha_eq, n_T, n_C, n_R, p1, nsim, seed = NULL)
+#'
+#' @param mu_T the true mean of the treatment arm endpoint
+#' @param mu_C the true mean of the control arm endpoint
+#' @param mu_R the true mean of the external control arm endpoint
+#' @param sigma_T the true standard deviation of the treatment arm endpoint
+#' @param sigma_C the true standard deviation of the control arm endpoint
+#' @param sigma_R the true standard deviation of the external control arm endpoint
+#' @param alpha_p the significance level of the primary hypothesis test, which is H0 : μt = μc vs H1 : μt != μc
+#' @param delta the equivalence margin, which is the maximum difference that can be treated as clinically acceptable
+#' @param alpha_eq the significance level of the equivalence test, which is H0 : μr - μc >= δeq or μr - μc <= δeq vs H1 : δeq < μr - μc < δeq
+#' @param n_T the sample size of the treatment arm
+#' @param n_C the sample size of the control arm
+#' @param n_R the sample size of the external control arm
+#' @param nsim the total number of trials to be simulated
+#' @param p1 the proportion of adjusted type I error spitted to the borrowing case, this parameter is only applied in the third calibration method; For details, please refer to the description of function 'calibration3' for details
+#' @param seed the random seed for simulation
+#' 
+#'
+#' @details \code{Simulation.normal()} run the simulation study under the normal assumption, which is : the endpoints of the treatment arm, control arm and external control arm follow normal distributions 
+#' with means equal to mu_T, mu_C, mu_R and standard deviations equal to sigma_T, sigma_C and sigma_R. This function returns a list that contain the simulated data, the proportion of rejecting
+#' the null hypothesis of each calibration method.
+#'
+#' @return \code{Simulation.normal()} returns a list that contains (1) data: the simulated data; 
+#' (2) rejectNull: The proportion of times we reject the null hypothesis when real-world data is not taken into consideration;
+#' (3) rejectNull_brw: The proportion of times we reject the null hypothesis when borrowing real-world data only happens when the equivalence test is accepted;
+#' (4) rejectNull_c1: The proportion of times we reject the null hypothesis when the first calibration method is applied. Please refer to the description of function 'calibration1' for details;
+#' (2) rejectNull_c2: The proportion of times we reject the null hypothesis when the second calibration method is applied. Please refer to the description of function 'calibration2' for details;
+#' (2) rejectNull_c3: The proportion of times we reject the null hypothesis when the third calibration method is applied. Please refer to the description of function 'calibration3' for details;
+#' (2) rejectNull_pp1: The proportion of times we reject the null hypothesis when borrowing rel-world data by power prior approach;
+#'
+#' @seealso toBeAdded
+#'
+#' @export
+#'
+
 Simulation = function (mu_T, mu_C, mu_R,
                        sigma_T, sigma_C, sigma_R,
                        alpha_p,
@@ -34,23 +77,23 @@ Simulation = function (mu_T, mu_C, mu_R,
     
     Z3 = Z1 - w*Z2
     Z3_var = Z1_var + w^2*Z2_var - 2*w*cov
-    Reject   = abs(Z1/sqrt(Z1_var)) > qnorm (1 - alpha_p/2)
-    Reject_n = ifelse(borrow, abs(Z3/sqrt(Z3_var)) > qnorm (1 - alpha_p/2), abs(Z1/sqrt(Z1_var)) > qnorm (1 - alpha_p/2))
+    rejectNull   = abs(Z1/sqrt(Z1_var)) > qnorm (1 - alpha_p/2)
+    rejectNull_brw = ifelse(borrow, abs(Z3/sqrt(Z3_var)) > qnorm (1 - alpha_p/2), abs(Z1/sqrt(Z1_var)) > qnorm (1 - alpha_p/2))
     
     ############################## Normal approximation (Approach 1) ############################
     
     res1 = Calibration1(Z1, Z2, Z1_var, Z2_var, w, theta, alpha_p)
-    Reject_c1 = res1$rejectNull
+    rejectNull_c1 = res1$rejectNull
     
     ############################## Common cutoff value (Approach 2) #############################
     
     res2 = Calibration2(Z1, Z2, Z1_var, Z2_var, w, theta, alpha_p)
-    Reject_c2 = res2$rejectNull
+    rejectNull_c2 = res2$rejectNull
     
     ############################## Split type I error (Approach 3) ##############################
     
     res3 = Calibration3(Z1, Z2, Z1_var, Z2_var, w, theta, p1, alpha_p)
-    Reject_c3 = res3$rejectNull
+    rejectNull_c3 = res3$rejectNull
     
     ############################## Power prior (Bayesian approach) ##############################
     
@@ -101,8 +144,8 @@ Simulation = function (mu_T, mu_C, mu_R,
     estimator2 = (1-w2)*X1+w2*X2
     estimator.sd2 = sqrt((1-w2)^2*X1.se^2 + w2^2*X2.se^2)
     
-    Reject_pp1 = abs(Y - estimator)/sqrt(Y.se^2 + estimator.sd^2) > qnorm (1 - alpha_p/2)
-    Reject_pp2 = abs(Y - estimator2)/sqrt(Y.se^2 + estimator.sd2^2) > qnorm (1 - alpha_p/2)
+    rejectNull_pp1 = abs(Y - estimator)/sqrt(Y.se^2 + estimator.sd^2) > qnorm (1 - alpha_p/2)
+    rejectNull_pp2 = abs(Y - estimator2)/sqrt(Y.se^2 + estimator.sd2^2) > qnorm (1 - alpha_p/2)
 
     R = rbind(R, data.frame(Z1 = Z1,
                             Z2 = Z2,
@@ -114,15 +157,24 @@ Simulation = function (mu_T, mu_C, mu_R,
                             w = w,
                             cov= cov,
                             borrow = borrow,
-                            Reject = Reject,
-                            Reject_c1 = Reject_c1,
-                            Reject_c2 = Reject_c2,
-                            Reject_c3 = Reject_c3,
+                            rejectNull = rejectNull,
+                            rejectNull_brw = rejectNull_brw,
+                            rejectNull_c1 = rejectNull_c1,
+                            rejectNull_c2 = rejectNull_c2,
+                            rejectNull_c3 = rejectNull_c3,
                             alphahat = alphahat,
                             alphahat2 = alphahat2,
-                            Reject_pp1 = Reject_pp1,
-                            Reject_pp2 = Reject_pp2)
+                            rejectNull_pp1 = rejectNull_pp1,
+                            rejectNull_pp2 = rejectNull_pp2)
               )
   }
-  return (R)
+  return (list(data = R,
+               rejectNull = mean(R$rejectNull),
+               rejectNull_brw = mean(R$rejectNull_brw),
+               rejectNull_c1 = mean(R$rejectNull_c1),
+               rejectNull_c2 = mean(R$rejectNull_c2),
+               rejectNull_c3 = mean(R$rejectNull_c3),
+               rejectNull_pp1 = mean(R$rejectNull_pp1),
+               rejectNull_pp2 = mean(R$rejectNull_pp2)
+               ))
 }
